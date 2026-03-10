@@ -21,9 +21,9 @@ def train_model(
     csv_path       = 'data/ratings.csv',
     model_save_path= 'model/trained_model.pt',
     embedding_dim  = 64,
-    epochs         = 20,
+    epochs         = 50,
     batch_size     = 1024,
-    learning_rate  = 0.003,
+    learning_rate  = 0.005,
 ):
     # 1. Load MovieLens data (uses 'userId' and 'movieId' column names)
     print('Loading MovieLens data...')
