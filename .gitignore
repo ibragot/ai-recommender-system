@@ -1,0 +1,34 @@
+```
+# Virtual environment — never upload this (it's huge and machine-specific)
+venv/
+
+# Trained model — this can be hundreds of MB
+model/trained_model.pt
+
+# Python cache files — auto-generated, not needed
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment secrets
+.env
+
+# Mac system files
+.DS_Store
+
+# VS Code settings
+.vscode/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Trained model
+model/trained_model.pt
+
+# MovieLens dataset files (too large, user downloads their own)
+data/ratings.csv
+data/movies.csv
+data/*.csv
+```

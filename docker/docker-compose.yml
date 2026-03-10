@@ -1,0 +1,43 @@
+version: "3.9"
+ 
+services:
+ 
+  # PostgreSQL database
+  db:
+    image: postgres:15-alpine
+    container_name: recommender_db
+    environment:
+      POSTGRES_USER: recommender
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: recommender_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recommender -d recommender_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+ 
+  # FastAPI application
+  api:
+    build:
+      context: ..          # Build from project root folder
+      dockerfile: docker/Dockerfile
+    container_name: recommender_api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://recommender:password@db:5432/recommender_db
+      MODEL_PATH: model/trained_model.pt
+    volumes:
+      - ../model:/app/model   # Share trained model with container
+      - ../data:/app/data     # Share MovieLens data with container
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+ 
+volumes:
+  postgres_data:
