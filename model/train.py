@@ -21,7 +21,7 @@ def train_model(
     csv_path       = 'data/ratings.csv',
     model_save_path= 'model/trained_model.pt',
     embedding_dim  = 64,
-    epochs         = 50,
+    epochs         = 100,
     batch_size     = 1024,
     learning_rate  = 0.005,
 ):
