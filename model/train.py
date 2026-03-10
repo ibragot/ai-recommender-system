@@ -20,10 +20,10 @@ class RatingsDataset(Dataset):
 def train_model(
     csv_path       = 'data/ratings.csv',
     model_save_path= 'model/trained_model.pt',
-    embedding_dim  = 32,
+    embedding_dim  = 64,
     epochs         = 20,
     batch_size     = 1024,
-    learning_rate  = 0.01,
+    learning_rate  = 0.003,
 ):
     # 1. Load MovieLens data (uses 'userId' and 'movieId' column names)
     print('Loading MovieLens data...')
@@ -52,7 +52,7 @@ def train_model(
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Training on: {device}')
     model     = MatrixFactorization(len(user_enc), len(movie_enc), embedding_dim).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)  # up from 1e-5
     loss_fn   = nn.MSELoss()
  
     # 6. Training loop
