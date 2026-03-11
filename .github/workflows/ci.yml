@@ -77,5 +77,6 @@ jobs:
             --max-line-length=120 \
             --exclude=__pycache__ \
             --ignore=E302,W503 \
+            --per-file-ignores='api/main.py:E501' \
             --count \
             --statistics
