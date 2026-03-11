@@ -24,27 +24,7 @@ This system uses **Matrix Factorization** — the same technique used by Netflix
 
 The core idea: every user gets a learned "taste fingerprint" (a list of 64 numbers), and every movie gets a learned "style fingerprint". To predict how much a user will like a movie, the model multiplies their fingerprints together. The AI learns the best fingerprints by studying 100,836 real ratings.
 
-```
-User Ratings (MovieLens)
-        │
-        ▼
-PostgreSQL Database
-        │
-        ▼
-PyTorch Training Script
-(Matrix Factorization)
-        │
-        ▼
-Trained Model (trained_model.pt)
-        │
-        ▼
-FastAPI Backend
-        │
-        ▼
-GET /recommend/{user_id} → ["Pulp Fiction", "The Matrix", ...]
-```
-
-The matrix of all possible user-movie combinations is **98.3% empty** — most users have not rated most movies. Matrix Factorization intelligently fills in those gaps to predict what users would rate movies they have never seen.
+The matrix of all possible user-movie combinations is **98.3% empty**, most users have not rated most movies. Matrix Factorization intelligently fills in those gaps to predict what users would rate movies they have never seen.
 
 ---
 
