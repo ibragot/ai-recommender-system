@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: recommender_db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,13 +27,14 @@ services:
       dockerfile: docker/Dockerfile
     container_name: recommender_api
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql://recommender:password@db:5432/recommender_db
       MODEL_PATH: model/trained_model.pt
     volumes:
       - ../model:/app/model   # Share trained model with container
       - ../data:/app/data     # Share MovieLens data with container
+      - ../Images:/app/Images # Share avatar image with container
     depends_on:
       db:
         condition: service_healthy

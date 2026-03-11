@@ -31,4 +31,11 @@ model/trained_model.pt
 data/ratings.csv
 data/movies.csv
 data/*.csv
+
+# Stray image files added by other tools
+Images/
+*.ico
+*.jpg
+*.jpeg
+*.png
 ```

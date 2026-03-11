@@ -17,5 +17,5 @@ COPY . .
 RUN mkdir -p model
  
 EXPOSE 8000
- 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+CMD ["sh", "-c", "echo '' && echo '  ✅ Server ready at: http://localhost:8000' && echo '  📄 API docs at:    http://localhost:8000/docs' && echo '' && uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level warning"]
