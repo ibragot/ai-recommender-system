@@ -27,7 +27,7 @@ services:
       dockerfile: docker/Dockerfile
     container_name: recommender_api
     ports:
-      - "127.0.0.1:8000:8000"
+      - "8000:8000"
     environment:
       DATABASE_URL: postgresql://recommender:password@db:5432/recommender_db
       MODEL_PATH: model/trained_model.pt

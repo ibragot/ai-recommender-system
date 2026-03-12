@@ -1,3 +1,5 @@
+![CI Pipeline](https://github.com/ibragot/ai-recommender-system/actions/workflows/ci.yml/badge.svg)
+
 # 🎬 AI Movie Recommendation Engine
 
 A Netflix-style movie recommendation system built with **PyTorch**, **FastAPI**, **PostgreSQL**, and **Docker**. Trained on the real **MovieLens** dataset — 100,836 ratings from 610 users across 9,742 movies.

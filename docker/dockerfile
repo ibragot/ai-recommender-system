@@ -1,21 +1,31 @@
-# Start from official Python 3.11 image
-FROM python:3.11-slim
- 
+FROM python:3.11-slim AS builder
+
 WORKDIR /app
- 
-# Install system libraries needed by psycopg2 (PostgreSQL driver)
+
 RUN apt-get update && apt-get install -y gcc libpq-dev \
     && rm -rf /var/lib/apt/lists/*
- 
-# Copy requirements first so Docker can cache this layer
+
 COPY requirements.txt .
+
+# Install CPU-only torch first (massively smaller than default)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
 RUN pip install --no-cache-dir -r requirements.txt
- 
-# Copy all project code
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
 COPY . .
- 
+
 RUN mkdir -p model
- 
+
 EXPOSE 8000
 
-CMD ["sh", "-c", "echo '' && echo '  ✅ Server ready at: http://localhost:8000' && echo '  📄 API docs at:    http://localhost:8000/docs' && echo '' && uvicorn api.main:app --host 0.0.0.0 --port 8000 --log-level warning"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
