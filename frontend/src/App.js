@@ -116,7 +116,6 @@ export default function App() {
   const [userId, setUserId] = useState('');
   const [recommendations, setRecs] = useState([]);
   const [rawRecommendations, setRawRecommendations] = useState([]);
-  const [topRatedMovies, setTopRatedMovies] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -155,7 +154,6 @@ export default function App() {
       if (contentType.includes('text/html')) {
         setRecs([]);
         setRawRecommendations([]);
-        setTopRatedMovies([]);
         setHasSearched(true);
         setError('API URL is pointing to a web page, not the backend API. Set REACT_APP_API_URL to your deployed FastAPI URL.');
         return;
@@ -176,7 +174,6 @@ export default function App() {
 
       setRawRecommendations(enriched);
       setRecs(enriched);
-      setTopRatedMovies(contextMovies);
       setSelectedGenre('All');
       setHasSearched(true);
     } catch (err) {
@@ -250,26 +247,6 @@ export default function App() {
 
             <p className='hint'>Tip: Try users 1, 42, 100, 250, or 500.</p>
           </div>
-
-          <div className='panel context-panel'>
-            <h3>Top Rated Movies by Users</h3>
-            {loading ? (
-              <div className='skeleton-list'>
-                {[...Array(4)].map((_, i) => <div key={i} className='line shimmer w85'></div>)}
-              </div>
-            ) : topRatedMovies.length > 0 ? (
-              <ul>
-                {topRatedMovies.map((movie) => (
-                  <li key={`top-${movie.id}`}>
-                    <span>{movie.title}</span>
-                    <strong>{Number(movie.rating || 0).toFixed(1)}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className='muted'>Search a user to see their highest-rated titles.</p>
-            )}
-          </div>
         </section>
       </main>
 
@@ -278,6 +255,7 @@ export default function App() {
           <h2>Recommendations</h2>
           {hasSearched && <span>{filteredRecommendations.length} movies shown</span>}
         </div>
+        <p className='muted'>Ratings on recommended movies are predicted ratings this user is likely to give.</p>
 
         {loading && (
           <div className='movie-grid'>
