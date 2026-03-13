@@ -5,8 +5,10 @@ import './App.css';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function StarRating({ rating }) {
+  const numericRating = Number(rating);
+  const safeRating = Number.isFinite(numericRating) ? numericRating : 0;
   const quarterStep = 0.25;
-  const normalizedRating = Math.max(0, Math.min(5, Math.round(rating / quarterStep) * quarterStep));
+  const normalizedRating = Math.max(0, Math.min(5, Math.round(safeRating / quarterStep) * quarterStep));
 
   const getFillPercent = (starIndex) => {
     const starStart = starIndex;
@@ -28,21 +30,23 @@ function StarRating({ rating }) {
           ★
         </span>
       ))}
-      <span className='rating-number'> {rating.toFixed(2)}</span>
+      <span className='rating-number'> {safeRating.toFixed(2)}</span>
     </span>
   );
 }
 
 function MovieCard({ movie, rank }) {
-  const genres = movie.genres.split('|').slice(0, 3);
+  const genres = typeof movie?.genres === 'string' ? movie.genres.split('|').slice(0, 3) : [];
   return (
     <div className='movie-card'>
       <div className='movie-rank'>#{rank}</div>
       <div className='movie-info'>
-        <h3 className='movie-title'>{movie.title}</h3>
-        <div className='movie-genres'>
-          {genres.map(g => <span key={g} className='genre-tag'>{g}</span>)}
-        </div>
+        <h3 className='movie-title'>{movie?.title || 'Untitled movie'}</h3>
+        {genres.length > 0 && (
+          <div className='movie-genres'>
+            {genres.map(g => <span key={g} className='genre-tag'>{g}</span>)}
+          </div>
+        )}
         <StarRating rating={movie.predicted_rating} />
       </div>
     </div>
@@ -65,7 +69,11 @@ export default function App() {
     setError('');
     try {
       const res = await axios.get(`${API_URL}/recommend/${userId}?top_k=10`);
-      setRecs(res.data.recommendations);
+      const nextRecs = Array.isArray(res.data?.recommendations) ? res.data.recommendations : [];
+      if (!Array.isArray(res.data?.recommendations)) {
+        setError('Unexpected API response format.');
+      }
+      setRecs(nextRecs);
       setHasSearched(true);
     } catch (err) {
       setError('Could not fetch recommendations. Is the API running?');
@@ -111,7 +119,7 @@ export default function App() {
           </div>
         )}
 
-        {!loading && hasSearched && recommendations.length > 0 && (
+        {!loading && hasSearched && Array.isArray(recommendations) && recommendations.length > 0 && (
           <div className='results'>
             <h2>Top 10 Movies for User {userId}</h2>
             <div className='movie-list'>
@@ -122,7 +130,7 @@ export default function App() {
           </div>
         )}
 
-        {!loading && hasSearched && recommendations.length === 0 && (
+        {!loading && hasSearched && (!Array.isArray(recommendations) || recommendations.length === 0) && (
           <p className='no-results'>No recommendations found for this user.</p>
         )}
       </main>
