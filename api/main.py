@@ -13,11 +13,7 @@ from contextlib import asynccontextmanager
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api.database import create_tables, seed_database, get_db, SessionLocal, User, Movie, Rating  # noqa: E402
 from model.recommender import MatrixFactorization  # noqa: E402
-import sys
-import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from evaluation.metrics import rmse, mae
-
+from evaluation.metrics import rmse, mae  # noqa: E402
 MODEL_PATH = os.getenv('MODEL_PATH', 'model/trained_model.pt')
 model_state = {'model': None, 'user_enc': None, 'movie_enc': None, 'movie_dec': None}
 
