@@ -38,4 +38,7 @@ Images/
 *.jpg
 *.jpeg
 *.png
+
+frontend/node_modules/
+frontend/build/
 ```
