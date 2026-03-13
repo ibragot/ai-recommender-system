@@ -1,197 +1,175 @@
-![CI Pipeline](https://github.com/ibragot/ai-recommender-system/actions/workflows/ci.yml/badge.svg)
-
 # 🎬 AI Movie Recommendation Engine
 
-A Netflix-style movie recommendation system built with **PyTorch**, **FastAPI**, **PostgreSQL**, and **Docker**. Trained on the real **MovieLens** dataset — 100,836 ratings from 610 users across 9,742 movies.
+![CI Pipeline](https://github.com/ibragot/ai-recommender-system/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.2-red?logo=pytorch)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.110-green?logo=fastapi)
+![Docker](https://img.shields.io/badge/Docker-Containerized-blue?logo=docker)
+![Live](https://img.shields.io/badge/Live-airecommender.noureldin.dev-brightgreen)
+
+> **Netflix-style personalized movie recommendations powered by Matrix Factorization.**
+> Trained on 100,836 real ratings from the MovieLens research dataset.
+> Live at **[airecommender.noureldin.dev](https://airecommender.noureldin.dev)**
 
 ---
 
-## 🏆 Results
+## 🎯 What It Does
 
-| Metric | Score |
+This system learns each user's unique taste from their rating history and predicts which movies they will enjoy — even movies they have never seen. It solves a fundamental problem: the user-movie matrix is **98.3% empty** (most users have not rated most movies), and the AI fills in those gaps intelligently.
+
+A user visiting the site picks their ID, clicks a button, and instantly receives a ranked list of personalized movie recommendations — each with a predicted rating and a match percentage showing how confident the model is.
+
+---
+
+## 🏗️ System Architecture
+
+```
+                        ┌─────────────────────────────────┐
+                        │         Developer (You)          │
+                        │   writes code, trains model      │
+                        └──────────────┬──────────────────┘
+                                       │ git push
+                         ┌─────────────▼─────────────┐
+                         │        GitHub              │
+                         │   stores source code       │
+                         └──────┬──────────┬──────────┘
+                                │ CI       │ CD
+                    ┌───────────▼──┐   ┌───▼────────────────┐
+                    │ GitHub       │   │ Railway            │
+                    │ Actions      │   │ (Backend Server)   │
+                    │              │   │                    │
+                    │ • Run tests  │   │ • FastAPI API      │
+                    │ • Build      │   │ • PostgreSQL DB    │
+                    │   Docker     │   │ • Downloads model  │
+                    │ • Check code │   │   from HuggingFace │
+                    └──────────────┘   └─────────┬──────────┘
+                                                 │ serves
+                              ┌──────────────────▼──────────────────┐
+                              │         Hugging Face Hub             │
+                              │    stores trained_model.pt           │
+                              │    (downloaded on server startup)    │
+                              └──────────────────┬──────────────────┘
+                                                 │
+                    ┌────────────────────────────▼────────────────────────┐
+                    │                    Vercel                           │
+                    │              React Frontend                         │
+                    │        airecommender.noureldin.dev                  │
+                    └────────────────────────────┬────────────────────────┘
+                                                 │ user visits
+                              ┌──────────────────▼──────────────────┐
+                              │              End User                │
+                              │   picks a user ID → sees            │
+                              │   personalized movie recommendations  │
+                              └─────────────────────────────────────┘
+```
+
+---
+
+## 🦋 Data Flow — How a Recommendation Is Generated
+
+```
+                              User clicks
+                         "Get Recommendations"
+                                  │
+                    ┌─────────────▼─────────────┐
+                    │      React Frontend        │
+                    │   GET /recommend/{user_id} │
+                    └─────────────┬─────────────┘
+                                  │ HTTP request
+                    ┌─────────────▼─────────────┐
+                    │       FastAPI Backend      │
+                    │                           │
+                    │  1. Look up user in DB    │
+                    │  2. Get rated movie IDs   │
+                    └──────┬──────────┬─────────┘
+                           │          │
+              ┌────────────▼──┐   ┌───▼────────────┐
+              │  PostgreSQL   │   │  PyTorch Model  │
+              │               │   │                 │
+              │ • Users       │   │ • User embedding│
+              │ • Movies      │   │ • Movie embedding│
+              │ • Ratings     │   │ • Dot product   │
+              └────────────┬──┘   └───┬─────────────┘
+                           │          │
+                    ┌──────▼──────────▼──────┐
+                    │   Score every unrated  │
+                    │   movie for this user  │
+                    │   Sort by predicted    │
+                    │   rating descending    │
+                    └──────────┬─────────────┘
+                               │
+                    ┌──────────▼─────────────┐
+                    │   Top 10 returned      │
+                    │   as JSON response     │
+                    └──────────┬─────────────┘
+                               │
+                    ┌──────────▼─────────────┐
+                    │   Frontend renders     │
+                    │   movie cards with     │
+                    │   stars + match %      │
+                    └────────────────────────┘
+```
+
+---
+
+## 🧠 The AI Model — Matrix Factorization
+
+The recommendation engine uses **Matrix Factorization**, the same technique used by winners of the Netflix Prize competition.
+
+### The Core Problem
+
+Every user has rated only a tiny fraction of available movies. Out of 5,931,640 possible user-movie combinations in the dataset, only 100,836 have ratings — meaning **98.3% of the matrix is empty**.
+
+```
+           Toy Story   Pulp Fiction   The Matrix   Titanic   ...9,738 more
+User 1        4.0          ???            5.0         ???
+User 2        ???          5.0            ???         3.0
+User 3        2.0          ???            ???         ???
+User 610      ???          ???            4.5         ???
+```
+
+### How Matrix Factorization Solves It
+
+Each user gets a learned **taste fingerprint** — a vector of 64 numbers that captures their preferences. Each movie gets a learned **style fingerprint** — a vector of 64 numbers capturing its characteristics. To predict how much a user will like a movie, the model computes the dot product of their fingerprints.
+
+```
+User 1 fingerprint:  [0.82, -0.31, 0.94, 0.17, ...]  (64 numbers)
+Matrix fingerprint:  [0.76,  0.88, 0.91, 0.22, ...]  (64 numbers)
+                              ↓ dot product
+              Predicted rating: 4.79 ⭐
+```
+
+The model learns these fingerprints by studying 100,836 real ratings over 20 training epochs, adjusting the numbers each time it makes a wrong prediction until the error is minimized.
+
+### Training Results
+
+| Metric | Value |
 |--------|-------|
 | Test RMSE | ~0.87 |
 | Test MAE | ~0.67 |
-| Ratings trained on | 100,836 |
-| Users | 610 |
-| Movies | 9,742 |
+| Training epochs | 20 |
+| Embedding dimension | 64 |
+| Optimizer | Adam (weight decay 1e-5) |
+| Batch size | 1,024 |
 
-An RMSE of ~0.87 is competitive with published academic research on this benchmark dataset. Netflix's prize-winning algorithm achieved ~0.85 on a significantly harder version of the same problem.
-
----
-
-## 🧠 How It Works
-
-This system uses **Matrix Factorization** — the same technique used by Netflix Prize winners.
-
-The core idea: every user gets a learned "taste fingerprint" (a list of 64 numbers), and every movie gets a learned "style fingerprint". To predict how much a user will like a movie, the model multiplies their fingerprints together. The AI learns the best fingerprints by studying 100,836 real ratings.
-
-The matrix of all possible user-movie combinations is **98.3% empty**, most users have not rated most movies. Matrix Factorization intelligently fills in those gaps to predict what users would rate movies they have never seen.
+An RMSE of ~0.87 means predictions are off by less than 1 star on average. Netflix's prize-winning algorithm achieved ~0.85 on a significantly harder version of this problem.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| AI Model | PyTorch (Matrix Factorization) |
-| Data Processing | NumPy, Pandas |
-| Backend API | FastAPI, Uvicorn |
-| Database | PostgreSQL, SQLAlchemy |
-| Containerization | Docker, Docker Compose |
-| Evaluation | Scikit-learn, custom RMSE/MAE/NDCG |
-
----
-
-## 📁 Project Structure
-
-```mermaid
-flowchart TD
-    A[👤 User Ratings] --> B[(🗄️ PostgreSQL Database)]
-    B --> C[🐍 Python Training Script\nNumPy + PyTorch]
-    C --> D[🧠 Trained Recommendation Model]
-    D --> E[⚡ FastAPI Backend]
-    E --> F[🔌 Recommendation API]
-    F --> G[🐳 Docker Container]
-
-    style A fill:#4A90D9,stroke:#2C5F8A,color:#fff
-    style B fill:#336791,stroke:#1E3F5A,color:#fff
-    style C fill:#3776AB,stroke:#1E4670,color:#fff
-    style D fill:#7B2D8B,stroke:#4A1A55,color:#fff
-    style E fill:#009688,stroke:#00695C,color:#fff
-    style F fill:#FF6B35,stroke:#CC4400,color:#fff
-    style G fill:#2496ED,stroke:#1167B1,color:#fff
-```
-
----
-
-## 🚀 Setup & Installation
-
-### Prerequisites
-
-Make sure you have these installed before starting:
-
-- **Python 3.9+** → https://www.python.org/downloads/
-- **Docker Desktop** → https://www.docker.com/products/docker-desktop/
-- **Git** → https://git-scm.com/
-
----
-
-### Step 1 — Clone the Repository
-
-```bash
-git clone https://github.com/noureldinibrahim/ai-recommender-system.git
-cd ai-recommender-system
-```
-
----
-
-### Step 2 — Download the MovieLens Dataset
-
-This project uses the **MovieLens Latest Small** dataset from GroupLens Research at the University of Minnesota. You need to download it yourself because the files are too large to include in the repository.
-
-**2a.** Go to: https://grouplens.org/datasets/movielens/
-
-**2b.** Scroll down to **"MovieLens Latest Datasets"**
-
-**2c.** Click **ml-latest-small.zip** to download it (~1 MB)
-
-**2d.** Extract the zip file. You will get a folder called `ml-latest-small`
-
-**2e.** Copy the two CSV files into the `data/` folder of this project:
-
-```bash
-# Mac / Linux
-cp ~/Downloads/ml-latest-small/ratings.csv data/
-cp ~/Downloads/ml-latest-small/movies.csv  data/
-
-# Windows (Command Prompt)
-copy %USERPROFILE%\Downloads\ml-latest-small\ratings.csv data\
-copy %USERPROFILE%\Downloads\ml-latest-small\movies.csv  data\
-```
-
-Your `data/` folder should now contain:
-
-```
-data/
-├── ratings.csv    ← 100,836 ratings
-└── movies.csv     ← 9,742 movies
-```
-
-> **About the dataset:** MovieLens is a research dataset created by GroupLens Lab. It has been used in hundreds of published papers and is the standard benchmark for recommendation system research. Full details at https://grouplens.org/datasets/movielens/
-
----
-
-### Step 3 — Install Python Dependencies
-
-```bash
-# Create a virtual environment (recommended)
-python3 -m venv venv
-source venv/bin/activate        # Mac/Linux
-venv\Scripts\activate           # Windows
-
-# Install all libraries
-pip install -r requirements.txt
-```
-
----
-
-### Step 4 — Train the AI Model
-
-This step teaches the model by reading all 100,836 ratings. It runs for 20 epochs and takes approximately **5–10 minutes on CPU**.
-
-```bash
-python model/train.py
-```
-
-You will see a live progress bar:
-
-```
-Loading MovieLens data...
-  100,836 ratings | 610 users | 9,724 movies
-Training for 20 epochs...
-=======================================================
-Epoch  1/20 [████░░░░░░░░░░░░░░░░] RMSE: 1.2341
-Epoch  5/20 [████████████░░░░░░░░] RMSE: 0.9456
-Epoch 10/20 [████████████████░░░░] RMSE: 0.8923
-Epoch 20/20 [████████████████████] RMSE: 0.8712
-=======================================================
-Best Test RMSE: 0.8712
-Model saved to model/trained_model.pt
-```
-
-When complete, a file called `trained_model.pt` will appear in your `model/` folder. **This only needs to be run once.** Every subsequent launch loads the saved model instantly.
-
----
-
-### Step 5 — Start with Docker
-
-Make sure Docker Desktop is open and running, then:
-
-```bash
-cd docker
-docker-compose up --build
-```
-
-Wait for this line — it means everything is ready:
-
-```
-recommender_api  | INFO:     Application startup complete.
-```
-
-> **Note:** The first launch seeds 100,836 ratings into PostgreSQL which takes 1–2 minutes. Subsequent launches are instant.
-
----
-
-### Step 6 — Open the API
-
-Go to your browser and open:
-
-```
-http://localhost:8000/
-```
-
-You will see the interactive Swagger UI where you can test every endpoint with a click.
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| AI Model | PyTorch | Matrix Factorization neural network |
+| Data Processing | NumPy, Pandas | Loading and encoding the dataset |
+| Backend API | FastAPI, Uvicorn | REST endpoints for recommendations |
+| Database | PostgreSQL, SQLAlchemy | Storing users, movies, ratings |
+| Model Storage | Hugging Face Hub | Hosting the trained model file |
+| Frontend | React | User interface |
+| Backend Hosting | Railway | Running FastAPI + PostgreSQL |
+| Frontend Hosting | Vercel | Serving the React app |
+| CI/CD | GitHub Actions | Automated testing and deployment |
+| Containerization | Docker, Docker Compose | Consistent environments |
 
 ---
 
@@ -199,72 +177,135 @@ You will see the interactive Swagger UI where you can test every endpoint with a
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/` | Health check — is the API running? |
+| GET | `/` | Health check — model loaded status |
 | GET | `/users` | List users in the database |
 | GET | `/movies` | List movies in the database |
-| POST | `/ratings` | Add a new user rating |
-| GET | `/recommend/{user_id}` | Get top-K recommendations for a user |
-| GET | `/metrics` | View model evaluation scores (RMSE, MAE) |
+| POST | `/ratings` | Submit a new user rating |
+| GET | `/recommend/{user_id}` | Get top-K personalized recommendations |
+| GET | `/recommend/{user_id}?top_k=5` | Limit to top 5 recommendations |
+| GET | `/metrics` | Live RMSE and MAE model evaluation scores |
+
+### Example Response
+
+```bash
+GET /recommend/42?top_k=3
+```
+
+```json
+{
+  "user_id": 42,
+  "username": "user_42",
+  "method": "matrix_factorization",
+  "recommendations": [
+    {
+      "id": 318,
+      "title": "Shawshank Redemption, The (1994)",
+      "genres": "Crime|Drama",
+      "predicted_rating": 4.87
+    },
+    {
+      "id": 296,
+      "title": "Pulp Fiction (1994)",
+      "genres": "Comedy|Crime|Drama|Thriller",
+      "predicted_rating": 4.82
+    },
+    {
+      "id": 2571,
+      "title": "Matrix, The (1999)",
+      "genres": "Action|Sci-Fi|Thriller",
+      "predicted_rating": 4.79
+    }
+  ]
+}
+```
 
 ---
 
 ## 📊 Evaluation Metrics
 
-The system implements four standard recommendation metrics:
-
-| Metric | What it measures |
+| Metric | What It Measures |
 |--------|-----------------|
-| **RMSE** | How far off predictions are on average. Lower is better. |
-| **MAE** | Average error in star rating. Lower is better. |
-| **Precision@K** | Of the top K recommendations, what % did the user actually like? |
-| **Recall@K** | Of all movies the user likes, what % did we find in top K? |
-| **NDCG@K** | Did we put the BEST recommendations at the very top? 1.0 = perfect. |
+| **RMSE** | Average prediction error in stars. Lower is better. 0 = perfect. |
+| **MAE** | Mean absolute error. Less sensitive to outliers than RMSE. |
+| **Precision@K** | Of top K recommendations, what % did the user actually like? |
+| **Recall@K** | Of all movies the user likes, what % did we surface in top K? |
+| **NDCG@K** | Did the best recommendations appear at the very top? 1.0 = perfect. |
 
 ---
 
-## 🔄 Stopping and Restarting
+## 🗂️ Project Structure
 
-```bash
-# Stop everything
-docker-compose down
-
-# Restart next time (no retraining needed)
-cd docker
-docker-compose up
+```
+ai-recommender-system/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml              ← CI/CD pipeline (test → build → deploy)
+│
+├── api/
+│   ├── main.py                 ← FastAPI routes, model loading, HuggingFace download
+│   └── database.py             ← PostgreSQL tables and data seeding
+│
+├── model/
+│   ├── recommender.py          ← PyTorch Matrix Factorization model definition
+│   └── train.py                ← Training script
+│
+├── evaluation/
+│   └── metrics.py              ← RMSE, MAE, Precision@K, Recall@K, NDCG@K
+│
+├── frontend/
+│   └── src/
+│       ├── App.js              ← Main React component
+│       └── App.css             ← Styling
+│
+├── tests/
+│   ├── test_metrics.py         ← Unit tests for evaluation metrics
+│   └── test_model.py           ← Unit tests for PyTorch model
+│
+├── docker/
+│   ├── dockerfile              ← Container build instructions
+│   └── docker-compose.yml      ← Local development environment
+│
+├── data/                       ← MovieLens CSV files (not committed)
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## 🔧 Troubleshooting
+## 🔄 CI/CD Pipeline
 
-| Problem | Solution |
-|---------|----------|
-| `ModuleNotFoundError: pandas` | Run `pip install -r requirements.txt` |
-| `docker: command not found` | Open Docker Desktop and make sure it is running |
-| `model_loaded: false` | Run `python model/train.py` before `docker-compose up` |
-| Port 8000 already in use | Stop whatever is using port 8000 or change it in docker-compose.yml |
-| Port 5432 already in use | Run `docker-compose down` then try again |
-| Training is slow | Normal on CPU. Reduce `epochs` to 10 in train.py for faster results |
-| Out of memory | Reduce `batch_size` from 1024 to 256 in train.py |
-| FileNotFoundError: ratings.csv | Make sure you ran train.py from the project root folder, not from inside model/ |
+Every push to `main` triggers this automated pipeline:
+
+```
+git push
+    │
+    ├── Run Tests          (pytest — metrics and model unit tests)
+    ├── Code Quality       (flake8 linter)
+    ├── Build Docker       (verifies container compiles correctly)
+    ├── Deploy Backend     (Railway — FastAPI + PostgreSQL)
+    └── Deploy Frontend    (Vercel — React app)
+```
+
+The backend downloads the trained model from Hugging Face Hub automatically on startup — no model file is ever committed to the repository.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Add neural collaborative filtering (NCF) model
-- [ ] Implement content-based filtering using movie genres
-- [ ] Build a simple frontend UI to browse recommendations
-- [ ] Add user authentication
-- [ ] Deploy to cloud (AWS / Railway / Render)
-- [ ] Experiment with larger MovieLens dataset (25M ratings)
+- [ ] Neural Collaborative Filtering (NCF) model for improved accuracy
+- [ ] Content-based filtering using movie genres and metadata
+- [ ] User registration and personal rating submission
+- [ ] A/B testing framework to compare model versions live
+- [ ] Retrain pipeline triggered automatically by new ratings
+- [ ] Upgrade to full MovieLens 25M dataset (25 million ratings)
 
 ---
 
 ## 📚 References
 
 - [MovieLens Dataset](https://grouplens.org/datasets/movielens/) — GroupLens Research, University of Minnesota
-- [Matrix Factorization Techniques for Recommender Systems](https://datajobs.com/data-science-repo/Recommender-Systems-[Netflix].pdf) — Koren, Bell, Volinsky (Netflix Prize)
+- [Matrix Factorization Techniques for Recommender Systems](https://datajobs.com/data-science-repo/Recommender-Systems-[Netflix].pdf) — Koren, Bell, Volinsky (Netflix Prize paper)
 - [PyTorch Documentation](https://pytorch.org/docs/)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 
@@ -273,8 +314,10 @@ docker-compose up
 ## 👤 Author
 
 **Noureldin Ibrahim**
-- GitHub: [@noureldinibrahim](https://github.com/noureldinibrahim)
+- 🌐 [noureldin.dev](https://noureldin.dev)
+- 🎬 [Live Demo](https://airecommender.noureldin.dev)
+- 💻 [GitHub](https://github.com/ibragot)
 
 ---
 
-*Built as a portfolio project demonstrating end to end machine learning system design.*
+*A full-stack production ML system — from raw data to live deployment.*
