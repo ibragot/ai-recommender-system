@@ -2,9 +2,6 @@
 # Virtual environment — never upload this (it's huge and machine-specific)
 venv/
 
-# Trained model — this can be hundreds of MB
-model/trained_model.pt
-
 # Python cache files — auto-generated, not needed
 __pycache__/
 *.pyc
@@ -23,9 +20,6 @@ __pycache__/
 
 # Jupyter notebooks checkpoints
 .ipynb_checkpoints/
-
-# Trained model
-model/trained_model.pt
 
 # Stray image files added by other tools
 Images/
