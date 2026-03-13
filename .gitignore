@@ -27,11 +27,6 @@ __pycache__/
 # Trained model
 model/trained_model.pt
 
-# MovieLens dataset files (too large, user downloads their own)
-data/ratings.csv
-data/movies.csv
-data/*.csv
-
 # Stray image files added by other tools
 Images/
 *.ico
