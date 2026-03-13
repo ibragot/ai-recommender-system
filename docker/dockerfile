@@ -7,9 +7,6 @@ RUN apt-get update && apt-get install -y gcc libpq-dev \
 
 COPY requirements.txt .
 
-# Install CPU-only torch first (massively smaller than default)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-
 RUN pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.11-slim
@@ -27,5 +24,7 @@ COPY . .
 RUN mkdir -p model
 
 EXPOSE 8000
+
+ENV PYTHONPATH=/app
 
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]

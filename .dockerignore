@@ -9,5 +9,4 @@ data/
 *.tar.gz
 .pytest_cache
 tests/
-evaluation/
 README.md
