@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -21,7 +21,7 @@ function whyRecommended(movie, topRatedMovies) {
   });
 
   const overlap = genres.find((g) => topGenres.has(g));
-  return overlap ? `Matches your interest in ${overlap}` : 'Matches your overall rating profile';
+  return overlap ? `Matches user interest in ${overlap}` : 'Matches user overall rating profile';
 }
 
 function PosterPlaceholder({ title }) {
@@ -117,29 +117,10 @@ export default function App() {
   const [recommendations, setRecs] = useState([]);
   const [rawRecommendations, setRawRecommendations] = useState([]);
   const [topRatedMovies, setTopRatedMovies] = useState([]);
-  const [trendingMovies, setTrendingMovies] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [loading, setLoading] = useState(false);
-  const [trendingLoading, setTrendingLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
-
-  useEffect(() => {
-    const fetchTrending = async () => {
-      setTrendingLoading(true);
-      try {
-        const res = await axios.get(`${API_URL}/popular?top_k=8`);
-        const list = Array.isArray(res.data?.movies) ? res.data.movies : [];
-        setTrendingMovies(list);
-      } catch {
-        setTrendingMovies([]);
-      } finally {
-        setTrendingLoading(false);
-      }
-    };
-
-    fetchTrending();
-  }, []);
 
   const availableGenres = useMemo(() => {
     const all = new Set(['All']);
@@ -271,7 +252,7 @@ export default function App() {
           </div>
 
           <div className='panel context-panel'>
-            <h3>User Top-Rated Movies</h3>
+            <h3>Top Rated Movies by Users</h3>
             {loading ? (
               <div className='skeleton-list'>
                 {[...Array(4)].map((_, i) => <div key={i} className='line shimmer w85'></div>)}
@@ -290,28 +271,6 @@ export default function App() {
             )}
           </div>
         </section>
-
-        <aside className='right-panel'>
-          <div className='panel trending-panel'>
-            <h3>Trending</h3>
-            {trendingLoading ? (
-              <div className='skeleton-list'>
-                {[...Array(6)].map((_, i) => <div key={i} className='line shimmer w70'></div>)}
-              </div>
-            ) : trendingMovies.length > 0 ? (
-              <ul>
-                {trendingMovies.map((movie, i) => (
-                  <li key={`trend-${movie.id}`}>
-                    <span>{i + 1}. {movie.title}</span>
-                    <strong>{Number(movie.avg_rating || 0).toFixed(2)}</strong>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className='muted'>Trending data unavailable right now.</p>
-            )}
-          </div>
-        </aside>
       </main>
 
       <section className='results-wrap'>
