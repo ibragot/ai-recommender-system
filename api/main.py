@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from contextlib import asynccontextmanager
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -209,6 +210,67 @@ def get_users(db: Session = Depends(get_db)):
 @app.get('/movies')
 def get_movies(db: Session = Depends(get_db)):
     return [{'id': m.id, 'title': m.title, 'genres': m.genres} for m in db.query(Movie).limit(50).all()]
+
+
+@app.get('/popular')
+def get_popular_movies(top_k: int = 10, db: Session = Depends(get_db)):
+    rows = (
+        db.query(
+            Movie.id,
+            Movie.title,
+            Movie.genres,
+            func.avg(Rating.rating).label('avg_rating'),
+            func.count(Rating.id).label('rating_count')
+        )
+        .join(Rating, Rating.movie_id == Movie.id)
+        .group_by(Movie.id, Movie.title, Movie.genres)
+        .having(func.count(Rating.id) >= 5)
+        .order_by(func.avg(Rating.rating).desc(), func.count(Rating.id).desc())
+        .limit(top_k)
+        .all()
+    )
+
+    return {
+        'movies': [
+            {
+                'id': row.id,
+                'title': row.title,
+                'genres': row.genres,
+                'avg_rating': round(float(row.avg_rating), 2),
+                'rating_count': row.rating_count,
+            }
+            for row in rows
+        ]
+    }
+
+
+@app.get('/users/{user_id}/top-rated')
+def get_user_top_rated_movies(user_id: int, top_k: int = 5, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(404, f'User {user_id} not found')
+
+    rows = (
+        db.query(Movie.id, Movie.title, Movie.genres, Rating.rating)
+        .join(Rating, Rating.movie_id == Movie.id)
+        .filter(Rating.user_id == user_id)
+        .order_by(Rating.rating.desc(), Movie.title.asc())
+        .limit(top_k)
+        .all()
+    )
+
+    return {
+        'user_id': user_id,
+        'movies': [
+            {
+                'id': row.id,
+                'title': row.title,
+                'genres': row.genres,
+                'rating': float(row.rating),
+            }
+            for row in rows
+        ]
+    }
 
 
 @app.post('/ratings')
