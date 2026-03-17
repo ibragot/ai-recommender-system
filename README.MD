@@ -147,8 +147,8 @@ The model learns these fingerprints by studying 100,836 real ratings over 20 tra
 |--------|-------|
 | Test RMSE | ~0.87 |
 | Test MAE | ~0.67 |
-| Training epochs | 20 |
-| Embedding dimension | 64 |
+| Training epochs | 100 |
+| Embedding dimension | 128 |
 | Optimizer | Adam (weight decay 1e-5) |
 | Batch size | 1,024 |
 
